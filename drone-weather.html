@@ -70,6 +70,12 @@
   .cond-warn{background:linear-gradient(135deg,#D68A2B,#C97A1E);}
   .cond-bad{background:linear-gradient(135deg,#C6432F,#B23726);}
 
+  .alert-banner{display:flex;align-items:flex-start;gap:10px;border-radius:14px;padding:12px 14px;margin-bottom:12px;font-size:13px;line-height:1.5;}
+  .alert-banner.warn{background:#3A2A0E;border:1px solid #6B4A16;color:#F3C878;}
+  .alert-banner.bad{background:#3A1712;border:1px solid #7A2E22;color:#F5A08E;}
+  .alert-banner svg{width:20px;height:20px;flex-shrink:0;margin-top:1px;}
+  .alert-banner b{display:block;margin-bottom:2px;font-size:13.5px;}
+
   .card{background:var(--card);border-radius:18px;padding:4px 4px;box-shadow:0 6px 18px rgba(10,30,55,.06);margin-bottom:14px;}
   .section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:14px 16px 4px 16px;}
   .row{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;border-top:1px solid var(--line);}
@@ -111,6 +117,12 @@
   .segmented button{flex:1;border:none;background:transparent;padding:9px;border-radius:8px;font-weight:600;font-size:13px;font-family:inherit;color:var(--muted);cursor:pointer;}
   .segmented button.active{background:var(--navy);color:#fff;}
   .info-box{background:#FFF7E8;border:1px solid #F0DDAF;border-radius:12px;padding:12px 14px;font-size:12.5px;color:#7A5A15;line-height:1.55;margin:14px 16px;}
+  .thresh-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid var(--line);}
+  .thresh-row:first-child{border-top:none;}
+  .thresh-row .tname{font-size:12.5px;color:var(--ink);}
+  .thresh-row .tinputs{display:flex;gap:6px;align-items:center;}
+  .thresh-row input{width:56px;text-align:right;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 6px;font-family:inherit;font-size:12.5px;color:var(--ink);}
+  .thresh-row .tlbl{font-size:10px;color:var(--muted);}
   .fav-list{padding:0 16px 14px 16px;}
   .fav-chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg);border-radius:20px;padding:8px 12px;font-size:12.5px;margin:0 8px 8px 0;cursor:pointer;font-weight:600;}
 
@@ -158,6 +170,7 @@
 
     <!-- TAB: PRONOSTICO -->
     <section id="tab-pronostico">
+      <div id="alertBannerSlot"></div>
       <div id="hourScroll" class="hourscroll"></div>
       <div id="pronosticoContent">
         <div class="loading"><div class="spinner"></div>Obteniendo datos reales de vuelo...</div>
@@ -189,10 +202,32 @@
           </div>
         </div>
         <div class="settings-item">
+          <label>Perfil de tu dron</label>
+          <div class="segmented" id="dronePresetToggle">
+            <button data-preset="mini">Ligero</button>
+            <button data-preset="standard" class="active">Estándar</button>
+            <button data-preset="pro">Profesional</button>
+          </div>
+          <div style="font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.5;" id="presetDesc"></div>
+          <button class="btn secondary" style="margin-top:10px;" onclick="toggleCustomThresholds()" id="customBtn">Personalizar umbrales</button>
+          <div id="customThresholds" class="hidden" style="margin-top:12px;"></div>
+        </div>
+        <div class="settings-item">
           <label>Ubicaciones guardadas</label>
           <div class="fav-list" id="favList" style="padding:0;"></div>
           <button class="btn secondary" style="margin-top:4px;" onclick="saveFavorite()">+ Guardar ubicación actual</button>
         </div>
+        <div class="settings-item">
+          <label>Alertas de cambio de condiciones</label>
+          <div class="segmented" id="notifToggle">
+            <button data-notif="off" class="active">Desactivadas</button>
+            <button data-notif="on">Activadas</button>
+          </div>
+          <div id="notifStatus" style="font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.5;"></div>
+        </div>
+      </div>
+      <div class="info-box">
+        <b>Sobre las alertas:</b> con esta pestaña abierta (o la app en segundo plano reciente), revisamos las próximas horas y te avisamos si las condiciones van a empeorar antes de tu vuelo — tanto con un aviso dentro de la app como con una notificación del navegador si das el permiso. No llegan si cierras completamente el navegador ni con el celular apagado.
       </div>
       <div class="info-box">
         <b>Sobre los datos:</b> el clima viene de Open-Meteo (modelos meteorológicos abiertos) y el índice Kp de NOAA SWPC — ambos gratuitos, sin necesidad de cuenta ni pago.<br><br>
@@ -224,6 +259,35 @@
 
 <script>
 /* ---------------- ESTADO ---------------- */
+/* ---------------- PERFILES DE DRON / UMBRALES ---------------- */
+const DRONE_PRESETS = {
+  mini: {
+    label: 'Dron ligero (< 250g, ej. Mini)',
+    wind: {warn: 14, bad: 22}, gust: {warn: 20, bad: 32},
+    precip: {warn: 25, bad: 55}, vis: {warn: 6000, bad: 3000}, kp: {warn: 5, bad: 6}
+  },
+  standard: {
+    label: 'Dron estándar (ej. Mavic/Air)',
+    wind: {warn: 18, bad: 30}, gust: {warn: 28, bad: 42},
+    precip: {warn: 25, bad: 55}, vis: {warn: 6000, bad: 3000}, kp: {warn: 5, bad: 6}
+  },
+  pro: {
+    label: 'Dron profesional/pesado (ej. Mavic 3, Inspire)',
+    wind: {warn: 25, bad: 38}, gust: {warn: 35, bad: 50},
+    precip: {warn: 30, bad: 60}, vis: {warn: 5000, bad: 2500}, kp: {warn: 5, bad: 6}
+  }
+};
+
+function loadThresholds(){
+  const saved = localStorage.getItem('thresholds');
+  if(saved){ try{ return JSON.parse(saved); }catch(e){} }
+  return JSON.parse(JSON.stringify(DRONE_PRESETS.standard));
+}
+function saveThresholds(t){
+  localStorage.setItem('thresholds', JSON.stringify(t));
+  localStorage.setItem('dronePreset', state.dronePreset);
+}
+
 let state = {
   lat: 9.9281, lon: -84.0907,      // fallback: San José, CR
   locationName: "San José, Costa Rica",
@@ -232,6 +296,8 @@ let state = {
   selectedDay: 0,
   selectedHourIndex: null,
   unit: localStorage.getItem('windUnit') || 'kmh',
+  dronePreset: localStorage.getItem('dronePreset') || 'standard',
+  thresholds: loadThresholds(),
 };
 
 const ICONS = {
@@ -274,14 +340,15 @@ function degToCompass(num){
 
 /* ---------------- SCORING DE CONDICIONES ---------------- */
 function scoreLevel(wind, gust, precipProb, visibilityM, cloud, kp){
+  const t = state.thresholds;
   let level = 'good'; // good | warn | bad
   const bump = (l) => { if(l==='bad') level='bad'; else if(l==='warn' && level!=='bad') level='warn'; };
 
-  if(wind >= 30) bump('bad'); else if(wind >= 18) bump('warn');
-  if(gust >= 42) bump('bad'); else if(gust >= 28) bump('warn');
-  if(precipProb >= 55) bump('bad'); else if(precipProb >= 25) bump('warn');
-  if(visibilityM < 3000) bump('bad'); else if(visibilityM < 6000) bump('warn');
-  if(kp !== null){ if(kp >= 6) bump('bad'); else if(kp >= 5) bump('warn'); }
+  if(wind >= t.wind.bad) bump('bad'); else if(wind >= t.wind.warn) bump('warn');
+  if(gust >= t.gust.bad) bump('bad'); else if(gust >= t.gust.warn) bump('warn');
+  if(precipProb >= t.precip.bad) bump('bad'); else if(precipProb >= t.precip.warn) bump('warn');
+  if(visibilityM < t.vis.bad) bump('bad'); else if(visibilityM < t.vis.warn) bump('warn');
+  if(kp !== null){ if(kp >= t.kp.bad) bump('bad'); else if(kp >= t.kp.warn) bump('warn'); }
 
   return level;
 }
@@ -353,6 +420,8 @@ async function loadAll(){
     renderPronostico();
     renderBrujula();
     renderRadar();
+    renderAlertBanner();
+    maybeNotify();
   }catch(e){
     document.getElementById('pronosticoContent').innerHTML = '<div class="loading">No se pudo obtener el clima. Revisa tu conexión a internet e intenta de nuevo.</div>';
   }
@@ -430,11 +499,11 @@ function renderPronostico(){
   const sunrise = new Date(daily.sunrise[dayIdx]).toLocaleTimeString('es-CR',{hour:'numeric',minute:'2-digit'});
   const sunset = new Date(daily.sunset[dayIdx]).toLocaleTimeString('es-CR',{hour:'numeric',minute:'2-digit'});
 
-  const windLevel = wind>=30?'bad':wind>=18?'warn':'good';
-  const gustLevel = gust>=42?'bad':gust>=28?'warn':'good';
-  const precipLevel = precip>=55?'bad':precip>=25?'warn':'good';
-  const visLevel = vis<3000?'bad':vis<6000?'warn':'good';
-  const kpLevel = kp===null?null:(kp>=6?'bad':kp>=5?'warn':'good');
+  const windLevel = wind>=state.thresholds.wind.bad?'bad':wind>=state.thresholds.wind.warn?'warn':'good';
+  const gustLevel = gust>=state.thresholds.gust.bad?'bad':gust>=state.thresholds.gust.warn?'warn':'good';
+  const precipLevel = precip>=state.thresholds.precip.bad?'bad':precip>=state.thresholds.precip.warn?'warn':'good';
+  const visLevel = vis<state.thresholds.vis.bad?'bad':vis<state.thresholds.vis.warn?'warn':'good';
+  const kpLevel = kp===null?null:(kp>=state.thresholds.kp.bad?'bad':kp>=state.thresholds.kp.warn?'warn':'good');
 
   document.getElementById('pronosticoContent').innerHTML = `
     <div class="condition-card">
@@ -598,6 +667,165 @@ document.getElementById('unitToggle').addEventListener('click',(e)=>{
   renderHourScroll(); renderPronostico(); renderBrujula();
 });
 
+/* ---------------- ALERTAS DE CAMBIO DE CONDICIONES ---------------- */
+const LEVEL_RANK = {good:0, warn:1, bad:2};
+
+function findUpcomingWorsening(){
+  const w = state.weather;
+  if(!w) return null;
+  const h = w.hourly;
+  const nowMs = Date.now();
+  let startIdx = h.time.findIndex(t => new Date(t).getTime() >= nowMs);
+  if(startIdx === -1) startIdx = h.time.length - 1;
+  if(startIdx < 0) startIdx = 0;
+
+  const currentLevel = scoreLevel(h.windspeed_10m[startIdx], h.windgusts_10m[startIdx], h.precipitation_probability[startIdx], h.visibility[startIdx], h.cloudcover[startIdx], state.kp);
+  const horizonHours = 8; // ventana de vigilancia
+  let worst = null;
+
+  for(let i = startIdx + 1; i < Math.min(startIdx + 1 + horizonHours, h.time.length); i++){
+    const lvl = scoreLevel(h.windspeed_10m[i], h.windgusts_10m[i], h.precipitation_probability[i], h.visibility[i], h.cloudcover[i], state.kp);
+    if(LEVEL_RANK[lvl] > LEVEL_RANK[currentLevel] && (!worst || LEVEL_RANK[lvl] > LEVEL_RANK[worst.level])){
+      worst = {index:i, level:lvl, time:h.time[i]};
+    }
+  }
+  return worst ? {...worst, currentLevel} : null;
+}
+
+function reasonForLevel(i){
+  const h = state.weather.hourly;
+  const t = state.thresholds;
+  const reasons = [];
+  if(h.windspeed_10m[i] >= t.wind.warn) reasons.push('viento fuerte');
+  if(h.windgusts_10m[i] >= t.gust.warn) reasons.push('ráfagas');
+  if(h.precipitation_probability[i] >= t.precip.warn) reasons.push('lluvia');
+  if(h.visibility[i] < t.vis.warn) reasons.push('poca visibilidad');
+  if(state.kp !== null && state.kp >= t.kp.warn) reasons.push('actividad geomagnética (Kp alto)');
+  return reasons.length ? reasons.join(', ') : 'condiciones cambiantes';
+}
+
+function renderAlertBanner(){
+  const container = document.getElementById('alertBannerSlot');
+  if(!container) return;
+  const worsening = findUpcomingWorsening();
+  if(!worsening){ container.innerHTML = ''; return; }
+
+  const cls = worsening.level; // warn | bad
+  const label = cls === 'bad' ? 'Se recomienda posponer' : 'Precaución';
+  container.innerHTML = `
+    <div class="alert-banner ${cls}">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 9v4M12 17h.01M10.3 3.9L2.7 18a2 2 0 001.7 3h15.2a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div><b>${label} a partir de ${fmtHour(worsening.time)}</b>Las condiciones van a empeorar por ${reasonForLevel(worsening.index)}.</div>
+    </div>`;
+}
+
+function maybeNotify(){
+  if(localStorage.getItem('notifEnabled') !== '1') return;
+  if(!('Notification' in window) || Notification.permission !== 'granted') return;
+
+  const worsening = findUpcomingWorsening();
+  if(!worsening) return;
+
+  // Evitar repetir la misma alerta en la misma sesión/hora
+  const key = `notified_${worsening.time}`;
+  if(sessionStorage.getItem(key)) return;
+  sessionStorage.setItem(key, '1');
+
+  const title = worsening.level === 'bad' ? '⚠️ Vuelo no recomendado próximamente' : '⚠️ Precaución en el vuelo';
+  new Notification(title, {
+    body: `A partir de ${fmtHour(worsening.time)}: ${reasonForLevel(worsening.index)}.`,
+    tag: 'aeroclima-alerta'
+  });
+}
+
+document.getElementById('notifToggle').addEventListener('click', async (e)=>{
+  const btn = e.target.closest('button'); if(!btn) return;
+  const wantsOn = btn.dataset.notif === 'on';
+  const statusEl = document.getElementById('notifStatus');
+
+  if(wantsOn){
+    if(!('Notification' in window)){
+      statusEl.textContent = 'Tu navegador no soporta notificaciones.';
+      return;
+    }
+    const perm = await Notification.requestPermission();
+    if(perm !== 'granted'){
+      statusEl.textContent = 'No diste permiso de notificaciones, así que solo verás el aviso dentro de la app.';
+      localStorage.setItem('notifEnabled', '0');
+      document.querySelectorAll('#notifToggle button').forEach(b=>b.classList.toggle('active', b.dataset.notif==='off'));
+      return;
+    }
+    statusEl.textContent = 'Notificaciones activadas. Te avisaremos si las condiciones empeoran.';
+    localStorage.setItem('notifEnabled', '1');
+  } else {
+    statusEl.textContent = '';
+    localStorage.setItem('notifEnabled', '0');
+  }
+  document.querySelectorAll('#notifToggle button').forEach(b=>b.classList.toggle('active', b===btn));
+});
+
+/* ---------------- PERFIL DE DRON / UMBRALES PERSONALIZADOS ---------------- */
+const THRESH_FIELDS = [
+  {key:'wind', label:'Viento sostenido (km/h)'},
+  {key:'gust', label:'Ráfagas (km/h)'},
+  {key:'precip', label:'Prob. de lluvia (%)'},
+  {key:'vis', label:'Visibilidad (m)', inverted:true},
+  {key:'kp', label:'Índice Kp'},
+];
+
+function updatePresetDesc(){
+  document.getElementById('presetDesc').textContent = DRONE_PRESETS[state.dronePreset]
+    ? DRONE_PRESETS[state.dronePreset].label
+    : 'Umbrales personalizados';
+}
+
+function renderCustomThresholdInputs(){
+  const el = document.getElementById('customThresholds');
+  const t = state.thresholds;
+  el.innerHTML = THRESH_FIELDS.map(f => `
+    <div class="thresh-row">
+      <div class="tname">${f.label}</div>
+      <div class="tinputs">
+        <div><div class="tlbl">Precaución</div><input type="number" data-field="${f.key}" data-tier="warn" value="${t[f.key].warn}"></div>
+        <div><div class="tlbl">No volar</div><input type="number" data-field="${f.key}" data-tier="bad" value="${t[f.key].bad}"></div>
+      </div>
+    </div>`).join('') + `<button class="btn" style="margin-top:10px;" onclick="applyCustomThresholds()">Guardar umbrales</button>`;
+}
+
+function toggleCustomThresholds(){
+  const el = document.getElementById('customThresholds');
+  const isHidden = el.classList.contains('hidden');
+  if(isHidden){ renderCustomThresholdInputs(); el.classList.remove('hidden'); }
+  else { el.classList.add('hidden'); }
+}
+
+function applyCustomThresholds(){
+  const inputs = document.querySelectorAll('#customThresholds input');
+  const t = JSON.parse(JSON.stringify(state.thresholds));
+  inputs.forEach(inp => {
+    const val = parseFloat(inp.value);
+    if(!isNaN(val)) t[inp.dataset.field][inp.dataset.tier] = val;
+  });
+  state.thresholds = t;
+  state.dronePreset = 'custom';
+  saveThresholds(t);
+  document.querySelectorAll('#dronePresetToggle button').forEach(b=>b.classList.remove('active'));
+  updatePresetDesc();
+  renderPronostico(); renderAlertBanner();
+}
+
+document.getElementById('dronePresetToggle').addEventListener('click',(e)=>{
+  const btn = e.target.closest('button'); if(!btn) return;
+  const preset = btn.dataset.preset;
+  state.dronePreset = preset;
+  state.thresholds = JSON.parse(JSON.stringify(DRONE_PRESETS[preset]));
+  saveThresholds(state.thresholds);
+  document.querySelectorAll('#dronePresetToggle button').forEach(b=>b.classList.toggle('active', b===btn));
+  updatePresetDesc();
+  document.getElementById('customThresholds').classList.add('hidden');
+  if(state.weather){ renderPronostico(); renderAlertBanner(); }
+});
+
 /* ---------------- INIT ---------------- */
 (function init(){
   const saved = localStorage.getItem('lastLocation');
@@ -607,6 +835,18 @@ document.getElementById('unitToggle').addEventListener('click',(e)=>{
   }
   document.querySelectorAll(`#unitToggle button[data-unit="${state.unit}"]`).forEach(b=>b.classList.add('active'));
   document.querySelectorAll('#unitToggle button').forEach(b=>{ if(b.dataset.unit!==state.unit) b.classList.remove('active'); });
+
+  document.querySelectorAll('#dronePresetToggle button').forEach(b=>b.classList.toggle('active', b.dataset.preset===state.dronePreset));
+  updatePresetDesc();
+
+  const notifOn = localStorage.getItem('notifEnabled') === '1';
+  document.querySelectorAll('#notifToggle button').forEach(b=>b.classList.toggle('active', (b.dataset.notif==='on') === notifOn));
+  if(notifOn && 'Notification' in window){
+    document.getElementById('notifStatus').textContent = Notification.permission === 'granted'
+      ? 'Notificaciones activadas. Te avisaremos si las condiciones empeoran.'
+      : 'Activa el permiso de notificaciones desde el navegador para recibir avisos.';
+  }
+
   renderFavorites();
   loadAll();
 })();
