@@ -504,14 +504,13 @@ function renderBrujula(){
   const i = state.selectedHourIndex;
   const h = w.hourly;
   const dirFrom = h.winddirection_10m[i];
-  const dirTo = (dirFrom + 180) % 360;
   const wind = h.windspeed_10m[i];
   const gust = h.windgusts_10m[i];
 
   document.getElementById('brujulaContent').innerHTML = `
     <div class="compass-wrap">
-      <h3>Viento soplando hacia</h3>
-      <div class="deg">${Math.round(dirTo)}° ${degToCompass(dirTo)}</div>
+      <h3>Viento viene de</h3>
+      <div class="deg">${Math.round(dirFrom)}° ${degToCompass(dirFrom)}</div>
       <svg viewBox="0 0 260 260" width="260" height="260" style="max-width:100%;">
         <circle cx="130" cy="130" r="112" stroke="#3A3428" stroke-width="2" fill="none"/>
         ${[...Array(72)].map((_,k)=>{
@@ -528,7 +527,7 @@ function renderBrujula(){
         <text x="230" y="136" fill="#C4BFB4" font-size="16" text-anchor="middle" font-weight="700">E</text>
         <text x="130" y="240" fill="#C4BFB4" font-size="16" text-anchor="middle" font-weight="700">S</text>
         <text x="30" y="136" fill="#C4BFB4" font-size="16" text-anchor="middle" font-weight="700">O</text>
-        <g transform="rotate(${dirTo} 130 130)">
+        <g transform="rotate(${dirFrom} 130 130)">
           <line x1="130" y1="130" x2="130" y2="62" stroke="#EAD08C" stroke-width="4" stroke-linecap="round"/>
           <path d="M130 54 L120 74 L140 74 Z" fill="#EAD08C"/>
           <circle cx="130" cy="130" r="7" fill="#EAD08C"/>
