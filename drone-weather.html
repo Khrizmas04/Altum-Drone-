@@ -352,6 +352,7 @@ async function fetchKp(){
 async function geocode(query){
   const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=5&language=es&format=json`;
   const res = await fetch(url);
+  if(!res.ok) throw new Error('geocode fetch failed');
   const data = await res.json();
   return data.results || [];
 }
@@ -560,9 +561,16 @@ function switchTab(tab){
 async function doSearch(){
   const q = document.getElementById('searchInput').value.trim();
   if(!q) return;
-  const results = await geocode(q);
   const box = document.getElementById('searchResults');
-  if(results.length===0){ box.innerHTML = '<div class="search-results"><div>Sin resultados</div></div>'; return; }
+  box.innerHTML = '<div class="search-results"><div>Buscando...</div></div>';
+  let results;
+  try{
+    results = await geocode(q);
+  }catch(e){
+    box.innerHTML = '<div class="search-results"><div>No se pudo buscar. Revisa tu conexión e intenta de nuevo.</div></div>';
+    return;
+  }
+  if(results.length===0){ box.innerHTML = '<div class="search-results"><div>Sin resultados para "'+q+'"</div></div>'; return; }
   box.innerHTML = '<div class="search-results">' + results.map((r,idx)=>
     `<div onclick="pickResult(${idx})">${r.name}${r.admin1? ', '+r.admin1:''}${r.country? ', '+r.country:''}</div>`
   ).join('') + '</div>';
