@@ -737,12 +737,12 @@ function renderRadar(){
 
 /* ---------------- FOTOGRAFIA: HORA DORADA / HORA AZUL ---------------- */
 async function fetchSunTimes(lat, lon, dateStr){
-  const url = `https://api.sunrise-sunset.org/v2?lat=${lat}&lng=${lon}&date=${dateStr}&formatted=0`;
+  const url = `https://api.sunrise-sunset.org/v2?lat=${lat}&lng=${lon}&date=${dateStr}`;
   const res = await fetch(url);
   if(!res.ok) throw new Error('sun times fetch failed');
   const data = await res.json();
-  if(data.status !== 'OK') throw new Error('sun times status not OK');
-  return data.results;
+  if(!data || !data.golden_hour || !data.sunrise) throw new Error('sun times response missing expected fields');
+  return data;
 }
 
 function cloudAtInstant(isoInstant){
