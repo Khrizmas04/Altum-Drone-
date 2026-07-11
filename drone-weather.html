@@ -167,6 +167,8 @@
   .brand-credit{text-align:center;padding:18px 20px 8px 20px;}
   .brand-credit .word{font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--gold-light);}
   .brand-credit .tag{font-size:10.5px;color:var(--muted);margin-top:3px;letter-spacing:.02em;}
+  .bio-avatar{width:56px;height:56px;border-radius:50%;flex-shrink:0;padding:2px;background:linear-gradient(135deg,var(--gold-light),var(--gold-dark));}
+  .bio-avatar img{width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;border:2px solid #0A0A0B;}
 
   /* BOTTOM NAV */
   nav.bottomnav{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:480px;background:var(--bg-2);border-top:1px solid var(--line);display:flex;padding:8px 4px 10px 4px;z-index:20;}
@@ -216,13 +218,13 @@
       <span id="locName">Cargando...</span>
       <span class="updated" id="updatedAt" style="margin-left:auto;"></span>
     </div>
-    <div class="daytabs" id="dayTabs"></div>
+    <div class="daytabs" id="dayTabs" style="display:none;"></div>
   </header>
 
   <main>
 
     <!-- TAB: PRONOSTICO -->
-    <section id="tab-pronostico">
+    <section id="tab-pronostico" class="hidden">
       <div id="alertBannerSlot"></div>
       <div id="hourScroll" class="hourscroll"></div>
       <div id="pronosticoContent">
@@ -244,13 +246,13 @@
     </section>
 
     <!-- TAB: FOTOGRAFIA -->
-    <section id="tab-fotografia" class="hidden">
+    <section id="tab-fotografia">
       <div class="segmented" id="photoSubTabToggle" style="margin-bottom:14px;">
-        <button data-sub="luz" class="active">Horas de luz</button>
-        <button data-sub="portafolio">Portafolio</button>
+        <button data-sub="luz">Horas de luz</button>
+        <button data-sub="portafolio" class="active">Portafolio</button>
       </div>
-      <div id="fotografiaContent"></div>
-      <div id="portfolioContent" class="hidden"></div>
+      <div id="fotografiaContent" class="hidden"></div>
+      <div id="portfolioContent"></div>
     </section>
 
     <!-- TAB: AJUSTES -->
@@ -303,7 +305,7 @@
   </main>
 
   <nav class="bottomnav">
-    <button class="navbtn active" data-tab="pronostico" onclick="switchTab('pronostico')">
+    <button class="navbtn" data-tab="pronostico" onclick="switchTab('pronostico')">
       <svg viewBox="0 0 24 24" fill="none"><path d="M6 18a4 4 0 010-8 5 5 0 019.6-1.5A4.5 4.5 0 0118 18H6z" stroke="currentColor" stroke-width="1.8"/></svg>
       Pronóstico
     </button>
@@ -315,7 +317,7 @@
       <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v9l6 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/></svg>
       Radar
     </button>
-    <button class="navbtn" data-tab="fotografia" onclick="switchTab('fotografia')">
+    <button class="navbtn active" data-tab="fotografia" onclick="switchTab('fotografia')">
       <svg viewBox="0 0 24 24" fill="none"><path d="M4 8a2 2 0 012-2h1.2l.8-1.4A2 2 0 019.7 3.6h4.6a2 2 0 011.7 1L16.8 6H18a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V8z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.4" stroke="currentColor" stroke-width="1.8"/></svg>
       Fotografía
     </button>
@@ -836,17 +838,35 @@ const PORTFOLIO_ITEMS = [
   // { category: 'eventos', type: 'video', title: 'Boda Ana y Luis', src: 'media/eventos/boda1.mp4' },
 ];
 
+// Cambia este texto por tu propia reseña cuando quieras.
+const PORTFOLIO_BIO = `Diseñador publicitario con más de 10 años de experiencia, especializado en fotografía y producción audiovisual. Ayudamos a negocios a elevar su imagen a través de contenido visual profesional, incluyendo tomas aéreas con dron.`;
+
 const CATEGORY_LABELS = {
   paisajes: 'Paisajes',
   eventos: 'Eventos',
   inmobiliaria: 'Inmobiliaria',
 };
 
+function renderBioBlock(){
+  return `
+    <div class="photo-hero" style="text-align:left;">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+        <div class="bio-avatar"><img src="media/perfil.jpg" alt="Fundador de Altum Studio"></div>
+        <div>
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;color:#fff;letter-spacing:.02em;">ALTUM STUDIO</div>
+          <div style="font-size:9px;color:var(--muted);letter-spacing:.24em;">DRONE</div>
+        </div>
+      </div>
+      <p style="text-align:left;font-size:13px;color:#D8D3C8;line-height:1.6;margin:0;">${PORTFOLIO_BIO}</p>
+    </div>`;
+}
+
 function renderPortfolio(){
   const container = document.getElementById('portfolioContent');
+  const bioHTML = renderBioBlock();
 
   if(PORTFOLIO_ITEMS.length === 0){
-    container.innerHTML = `
+    container.innerHTML = bioHTML + `
       <div class="portfolio-empty">
         <svg viewBox="0 0 24 24" fill="none"><path d="M4 8a2 2 0 012-2h1.2l.8-1.4A2 2 0 019.7 3.6h4.6a2 2 0 011.7 1L16.8 6H18a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.2" stroke="currentColor" stroke-width="1.6"/></svg>
         <div style="font-size:14.5px;font-weight:600;color:var(--ink);margin-bottom:6px;">Todavía no hay contenido aquí</div>
@@ -864,7 +884,7 @@ function renderPortfolio(){
     byCategory[item.category].push(item);
   });
 
-  container.innerHTML = Object.entries(byCategory).map(([cat, items]) => {
+  container.innerHTML = bioHTML + Object.entries(byCategory).map(([cat, items]) => {
     const label = CATEGORY_LABELS[cat] || (cat.charAt(0).toUpperCase() + cat.slice(1));
     const gridItems = items.map((item, idx) => {
       const globalIdx = PORTFOLIO_ITEMS.indexOf(item);
@@ -910,6 +930,7 @@ document.getElementById('photoSubTabToggle').addEventListener('click', (e)=>{
   document.getElementById('portfolioContent').classList.toggle('hidden', sub!=='portafolio');
   document.getElementById('dayTabs').style.display = sub==='luz' ? 'flex' : 'none';
   if(sub==='portafolio') renderPortfolio();
+  if(sub==='luz' && state.weather) renderFotografia();
 });
 
 /* ---------------- TABS PRINCIPALES ---------------- */
@@ -1179,6 +1200,7 @@ document.getElementById('dronePresetToggle').addEventListener('click',(e)=>{
   }
 
   renderFavorites();
+  renderPortfolio();
   loadAll();
 })();
 </script>
