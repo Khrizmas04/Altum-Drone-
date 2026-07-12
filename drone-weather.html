@@ -4,6 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <title>Altum Studio</title>
+<meta name="description" content="Diseñador publicitario especializado en fotografía y producción audiovisual, incluyendo tomas aéreas con dron. Elevamos la imagen de tu negocio.">
+
+<!-- Vista previa al compartir (Open Graph / WhatsApp / Instagram / Facebook) -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Altum Studio — Fotografía y producción audiovisual">
+<meta property="og:description" content="Diseñador publicitario con más de 10 años de experiencia. Fotografía, video y tomas aéreas con dron para elevar la imagen de tu negocio.">
+<meta property="og:image" content="https://khrizmas04.github.io/Altum-Drone-/media/perfil.jpg">
+<meta property="og:url" content="https://khrizmas04.github.io/Altum-Drone-/drone-weather.html">
+
+<!-- Vista previa al compartir en Twitter/X -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Altum Studio — Fotografía y producción audiovisual">
+<meta name="twitter:description" content="Diseñador publicitario con más de 10 años de experiencia. Fotografía, video y tomas aéreas con dron para elevar la imagen de tu negocio.">
+<meta name="twitter:image" content="https://khrizmas04.github.io/Altum-Drone-/media/perfil.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -118,6 +132,12 @@
 
   .photo-hero{border-radius:18px;padding:20px 18px;color:#fff;margin-bottom:14px;background:linear-gradient(160deg,#1a1408,#0A0A0B);border:1px solid var(--line);text-align:center;}
   .photo-hero .sunicon{font-size:26px;margin-bottom:4px;}
+  .contact-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+  .contact-btn{display:flex;align-items:center;gap:6px;padding:9px 14px;border-radius:20px;font-size:12.5px;font-weight:600;text-decoration:none;border:1px solid var(--line);color:var(--ink);background:rgba(255,255,255,.04);}
+  .contact-btn svg{width:16px;height:16px;flex-shrink:0;}
+  .contact-btn.wa{color:#7ED9A0;border-color:rgba(126,217,160,.3);}
+  .contact-btn.ig{color:#E0A0C8;border-color:rgba(224,160,200,.3);}
+  .contact-btn.mail{color:var(--gold-light);border-color:rgba(234,208,140,.3);}
   .photo-hero h2{margin:0 0 2px 0;font-size:17px;}
   .photo-hero p{margin:0;font-size:12.5px;color:var(--muted);}
   .photo-row{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-top:1px solid var(--line);}
@@ -913,11 +933,41 @@ const PORTFOLIO_ITEMS = [
 // Cambia este texto por tu propia reseña cuando quieras.
 const PORTFOLIO_BIO = `Soy Christopher Ramírez, diseñador publicitario con más de 10 años de experiencia, especializado en fotografía y producción audiovisual. Ayudo a negocios a elevar su imagen a través de contenido visual profesional, incluyendo tomas aéreas con dron.`;
 
+// Datos de contacto: reemplaza con los tuyos. Deja el valor como '' (vacío)
+// en cualquiera que no quieras mostrar como botón.
+const CONTACT_INFO = {
+  whatsapp: '',   // ej: '50688881234' (código de país + número, sin +, sin espacios)
+  instagram: '',  // ej: 'altum.studio' (tu usuario, sin @)
+  email: '',      // ej: 'contacto@altumstudio.com'
+};
+
 const CATEGORY_LABELS = {
   paisajes: 'Paisajes',
   eventos: 'Eventos',
   inmobiliaria: 'Inmobiliaria',
 };
+
+function renderContactButtons(){
+  const buttons = [];
+  if(CONTACT_INFO.whatsapp){
+    const msg = encodeURIComponent('Hola Christopher, vi tu portafolio de Altum Studio y me gustaría cotizar un proyecto.');
+    buttons.push(`<a href="https://wa.me/${CONTACT_INFO.whatsapp}?text=${msg}" target="_blank" rel="noopener" class="contact-btn wa">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 00-8.5 15.2L2 22l4.9-1.4A10 10 0 1012 2zm5.5 14.2c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-1.7-.1-.4-.1-.9-.3-1.5-.6-2.7-1.2-4.5-3.9-4.6-4.1-.1-.2-1.1-1.5-1.1-2.8 0-1.3.7-2 1-2.2.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5.2.5.7 1.8.8 1.9.1.2.1.3 0 .5-.1.2-.2.3-.3.5-.2.2-.3.3-.5.5-.2.2-.3.4-.1.7.2.3.7 1.2 1.6 1.9 1.1.9 2 1.2 2.3 1.3.3.1.4.1.6-.1.2-.2.7-.8.9-1.1.2-.3.4-.2.6-.1.2.1 1.5.7 1.7.8.2.1.4.2.4.3.1.2.1.7-.1 1.3z"/></svg>
+      WhatsApp</a>`);
+  }
+  if(CONTACT_INFO.instagram){
+    buttons.push(`<a href="https://instagram.com/${CONTACT_INFO.instagram}" target="_blank" rel="noopener" class="contact-btn ig">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor"/></svg>
+      Instagram</a>`);
+  }
+  if(CONTACT_INFO.email){
+    buttons.push(`<a href="mailto:${CONTACT_INFO.email}" class="contact-btn mail">
+      <svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M4 7l8 6 8-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Correo</a>`);
+  }
+  if(buttons.length === 0) return '';
+  return `<div class="contact-row">${buttons.join('')}</div>`;
+}
 
 function renderBioBlock(){
   return `
@@ -929,7 +979,8 @@ function renderBioBlock(){
           <div style="font-size:9px;color:var(--muted);letter-spacing:.24em;">STUDIO</div>
         </div>
       </div>
-      <p style="text-align:left;font-size:13px;color:#D8D3C8;line-height:1.6;margin:0;">${PORTFOLIO_BIO}</p>
+      <p style="text-align:left;font-size:13px;color:#D8D3C8;line-height:1.6;margin:0 0 4px 0;">${PORTFOLIO_BIO}</p>
+      ${renderContactButtons()}
     </div>`;
 }
 
