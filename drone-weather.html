@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<title>Altum Drone</title>
+<title>Altum Studio</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -199,7 +199,7 @@
         <path d="M12 1L23 19H1L12 1Z" fill="url(#goldGrad)"/>
         <path d="M12 8.5L17.2 17H6.8L12 8.5Z" fill="#0A0A0B"/>
       </svg>
-      <div class="word"><b>ALTUM</b><span>DRONE</span></div>
+      <div class="word"><b>ALTUM</b><span>STUDIO</span></div>
     </div>
     <div style="position:relative;">
       <div class="searchbar">
@@ -230,6 +230,7 @@
       <div id="pronosticoContent">
         <div class="loading"><div class="spinner"></div>Obteniendo datos reales de vuelo...</div>
       </div>
+      <div id="sunTimesSlot"></div>
     </section>
 
     <!-- TAB: BRUJULA -->
@@ -245,13 +246,8 @@
       <div class="info-box">Radar de precipitación en tiempo real (cortesía de Windy.com). Útil para ver si hay tormentas acercándose antes o durante un vuelo.</div>
     </section>
 
-    <!-- TAB: FOTOGRAFIA -->
-    <section id="tab-fotografia">
-      <div class="segmented" id="photoSubTabToggle" style="margin-bottom:14px;">
-        <button data-sub="luz">Horas de luz</button>
-        <button data-sub="portafolio" class="active">Portafolio</button>
-      </div>
-      <div id="fotografiaContent" class="hidden"></div>
+    <!-- TAB: PORTAFOLIO -->
+    <section id="tab-portafolio">
       <div id="portfolioContent"></div>
     </section>
 
@@ -317,9 +313,9 @@
       <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v9l6 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/></svg>
       Radar
     </button>
-    <button class="navbtn active" data-tab="fotografia" onclick="switchTab('fotografia')">
+    <button class="navbtn active" data-tab="portafolio" onclick="switchTab('portafolio')">
       <svg viewBox="0 0 24 24" fill="none"><path d="M4 8a2 2 0 012-2h1.2l.8-1.4A2 2 0 019.7 3.6h4.6a2 2 0 011.7 1L16.8 6H18a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V8z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.4" stroke="currentColor" stroke-width="1.8"/></svg>
-      Fotografía
+      Portafolio
     </button>
     <button class="navbtn" data-tab="ajustes" onclick="switchTab('ajustes')">
       <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 13.5a1.6 1.6 0 000-3l-1.2-.2a6.6 6.6 0 00-.7-1.7l.7-1a1.6 1.6 0 00-2.3-2.3l-1 .7a6.6 6.6 0 00-1.7-.7L13 3.6a1.6 1.6 0 00-3 0l-.2 1.2a6.6 6.6 0 00-1.7.7l-1-.7a1.6 1.6 0 00-2.3 2.3l.7 1a6.6 6.6 0 00-.7 1.7l-1.2.2a1.6 1.6 0 000 3l1.2.2a6.6 6.6 0 00.7 1.7l-.7 1a1.6 1.6 0 002.3 2.3l1-.7a6.6 6.6 0 001.7.7l.2 1.2a1.6 1.6 0 003 0l.2-1.2a6.6 6.6 0 001.7-.7l1 .7a1.6 1.6 0 002.3-2.3l-.7-1a6.6 6.6 0 00.7-1.7l1.2-.2z" stroke="currentColor" stroke-width="1.4"/></svg>
@@ -501,6 +497,7 @@ async function loadAll(){
     renderRadar();
     renderAlertBanner();
     maybeNotify();
+    renderFotografia();
   }catch(e){
     document.getElementById('pronosticoContent').innerHTML = '<div class="loading">No se pudo obtener el clima. Revisa tu conexión a internet e intenta de nuevo.</div>';
   }
@@ -534,7 +531,7 @@ function renderDayTabs(){
     const div = document.createElement('div');
     div.className = 'daytab' + (idx===state.selectedDay ? ' active' : '');
     div.innerHTML = `<span class="d">${lbl.bottom}</span>${lbl.top}`;
-    div.onclick = () => { state.selectedDay = idx; state.selectedHourIndex = null; renderDayTabs(); renderHourScroll(); renderPronostico(); renderBrujula(); if(!document.getElementById('tab-fotografia').classList.contains('hidden')) renderFotografia(); };
+    div.onclick = () => { state.selectedDay = idx; state.selectedHourIndex = null; renderDayTabs(); renderHourScroll(); renderPronostico(); renderBrujula(); renderFotografia(); };
     el.appendChild(div);
   });
 }
@@ -764,7 +761,8 @@ function photoConditionFromCloud(cloud){
 }
 
 async function renderFotografia(){
-  const container = document.getElementById('fotografiaContent');
+  const container = document.getElementById('sunTimesSlot');
+  if(!container) return;
   container.innerHTML = '<div class="loading"><div class="spinner"></div>Calculando horas de luz ideales...</div>';
 
   const dateStr = state.weather.daily.time[state.selectedDay];
@@ -803,16 +801,11 @@ async function renderFotografia(){
   }).join('');
 
   container.innerHTML = `
-    <div class="photo-hero">
-      <div class="sunicon">🌄</div>
-      <h2>Mejores horas de luz para volar hoy</h2>
-      <p>Calculado para tu ubicación actual, cruzado con la nubosidad prevista.</p>
-    </div>
+    <div class="section-title" style="padding-left:2px;">Horas de luz para fotos y video</div>
     <div class="card">${rowsHTML}</div>
     <div class="info-box">
       <b>Hora dorada:</b> luz cálida y suave, ideal para paisajes, atardeceres y tomas cinematográficas.<br><br>
-      <b>Hora azul:</b> cielo azul profundo tras la puesta o antes de la salida del sol, ideal para skylines y tomas urbanas con luces encendidas.<br><br>
-      Recuerda cruzar esto con la pestaña <b>Pronóstico</b> para confirmar que el viento esté dentro de rangos seguros a esa hora — una buena luz no sirve de mucho si no se puede volar con estabilidad.
+      <b>Hora azul:</b> cielo azul profundo tras la puesta o antes de la salida del sol, ideal para skylines y tomas urbanas con luces encendidas.
     </div>
     <div class="source-note">Horas de sol calculadas con <a href="https://sunrise-sunset.org" target="_blank" rel="noopener">sunrise-sunset.org</a>.</div>
   `;
@@ -854,7 +847,7 @@ function renderBioBlock(){
         <div class="bio-avatar"><img src="media/perfil.jpg" alt="Fundador de Altum Studio"></div>
         <div>
           <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;color:#fff;letter-spacing:.02em;">ALTUM STUDIO</div>
-          <div style="font-size:9px;color:var(--muted);letter-spacing:.24em;">DRONE</div>
+          <div style="font-size:9px;color:var(--muted);letter-spacing:.24em;">STUDIO</div>
         </div>
       </div>
       <p style="text-align:left;font-size:13px;color:#D8D3C8;line-height:1.6;margin:0;">${PORTFOLIO_BIO}</p>
@@ -922,26 +915,14 @@ function closeLightbox(){
   document.getElementById('lightbox').classList.add('hidden');
 }
 
-document.getElementById('photoSubTabToggle').addEventListener('click', (e)=>{
-  const btn = e.target.closest('button'); if(!btn) return;
-  const sub = btn.dataset.sub;
-  document.querySelectorAll('#photoSubTabToggle button').forEach(b=>b.classList.toggle('active', b===btn));
-  document.getElementById('fotografiaContent').classList.toggle('hidden', sub!=='luz');
-  document.getElementById('portfolioContent').classList.toggle('hidden', sub!=='portafolio');
-  document.getElementById('dayTabs').style.display = sub==='luz' ? 'flex' : 'none';
-  if(sub==='portafolio') renderPortfolio();
-  if(sub==='luz' && state.weather) renderFotografia();
-});
-
 /* ---------------- TABS PRINCIPALES ---------------- */
 function switchTab(tab){
-  ['pronostico','brujula','radar','fotografia','ajustes'].forEach(t=>{
+  ['pronostico','brujula','radar','portafolio','ajustes'].forEach(t=>{
     document.getElementById('tab-'+t).classList.toggle('hidden', t!==tab);
   });
   document.querySelectorAll('.navbtn').forEach(b=> b.classList.toggle('active', b.dataset.tab===tab));
-  const fotoSubIsLuz = document.querySelector('#photoSubTabToggle button[data-sub="luz"]')?.classList.contains('active');
-  document.getElementById('dayTabs').style.display = (tab==='pronostico'||tab==='brujula'||(tab==='fotografia'&&fotoSubIsLuz)) ? 'flex':'none';
-  if(tab==='fotografia' && state.weather && fotoSubIsLuz) renderFotografia();
+  document.getElementById('dayTabs').style.display = (tab==='pronostico'||tab==='brujula') ? 'flex':'none';
+  if(tab==='portafolio') renderPortfolio();
 }
 
 /* ---------------- BUSQUEDA / GEOLOCALIZACION ---------------- */
