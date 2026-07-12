@@ -132,6 +132,14 @@
 
   .photo-hero{border-radius:18px;padding:20px 18px;color:#fff;margin-bottom:14px;background:linear-gradient(160deg,#1a1408,#0A0A0B);border:1px solid var(--line);text-align:center;}
   .photo-hero .sunicon{font-size:26px;margin-bottom:4px;}
+
+  .portfolio-hero{padding:26px 4px 22px 4px;text-align:left;}
+  .portfolio-hero .eyebrow{font-size:11px;font-weight:700;letter-spacing:.16em;color:var(--gold-light);text-transform:uppercase;margin-bottom:10px;}
+  .portfolio-hero h1{font-family:'Space Grotesk',sans-serif;font-size:29px;line-height:1.18;color:#fff;margin:0 0 20px 0;font-weight:700;letter-spacing:-.01em;}
+  .hero-stats{display:flex;gap:26px;flex-wrap:wrap;padding-top:16px;border-top:1px solid var(--line);}
+  .hero-stats .stat{display:flex;flex-direction:column;}
+  .hero-stats .num{font-family:'Space Grotesk',sans-serif;font-size:21px;font-weight:700;background:linear-gradient(135deg,var(--gold-light),var(--gold-dark));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .hero-stats .lbl{font-size:11px;color:var(--muted);margin-top:3px;}
   .contact-row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
   .contact-btn{display:flex;align-items:center;gap:6px;padding:9px 14px;border-radius:20px;font-size:12.5px;font-weight:600;text-decoration:none;border:1px solid var(--line);color:var(--ink);background:rgba(255,255,255,.04);}
   .contact-btn svg{width:16px;height:16px;flex-shrink:0;}
@@ -271,6 +279,9 @@
   .portfolio-grid{grid-template-columns:repeat(5,1fr);}
   .lightbox-content{max-width:60vw;}
   .radar-wrap iframe{height:520px;}
+}
+@media (min-width: 900px){
+  .portfolio-hero h1{font-size:38px;}
 }
 @media (min-width: 1300px){
   header, main{max-width:920px;}
@@ -936,9 +947,9 @@ const PORTFOLIO_BIO = `Soy Christopher Ramírez, diseñador publicitario con má
 // Datos de contacto: reemplaza con los tuyos. Deja el valor como '' (vacío)
 // en cualquiera que no quieras mostrar como botón.
 const CONTACT_INFO = {
-  whatsapp: '',   // ej: '50688881234' (código de país + número, sin +, sin espacios)
-  instagram: '',  // ej: 'altum.studio' (tu usuario, sin @)
-  email: '',      // ej: 'contacto@altumstudio.com'
+  whatsapp: '50683108665',
+  instagram: 'altumstudio.cr',
+  email: 'altumstudio.cr@gmail.com',
 };
 
 const CATEGORY_LABELS = {
@@ -984,12 +995,32 @@ function renderBioBlock(){
     </div>`;
 }
 
+// Titular grande de la sección Portafolio. Cambia el texto o las cifras cuando quieras.
+const PORTFOLIO_HEADLINE = 'Elevamos la imagen de tu negocio';
+const PORTFOLIO_STATS = [
+  {num:'10+', label:'Años de experiencia'},
+  {num:'100%', label:'Producción propia'},
+  {num:'Dron', label:'Cobertura aérea'},
+];
+
+function renderPortfolioHero(){
+  return `
+    <div class="portfolio-hero">
+      <div class="eyebrow">Fotografía · Video · Dron</div>
+      <h1>${PORTFOLIO_HEADLINE}</h1>
+      <div class="hero-stats">
+        ${PORTFOLIO_STATS.map(s=>`<div class="stat"><span class="num">${s.num}</span><span class="lbl">${s.label}</span></div>`).join('')}
+      </div>
+    </div>`;
+}
+
 function renderPortfolio(){
   const container = document.getElementById('portfolioContent');
+  const heroHTML = renderPortfolioHero();
   const bioHTML = renderBioBlock();
 
   if(PORTFOLIO_ITEMS.length === 0){
-    container.innerHTML = bioHTML + `
+    container.innerHTML = heroHTML + bioHTML + `
       <div class="portfolio-empty">
         <svg viewBox="0 0 24 24" fill="none"><path d="M4 8a2 2 0 012-2h1.2l.8-1.4A2 2 0 019.7 3.6h4.6a2 2 0 011.7 1L16.8 6H18a2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.2" stroke="currentColor" stroke-width="1.6"/></svg>
         <div style="font-size:14.5px;font-weight:600;color:var(--ink);margin-bottom:6px;">Todavía no hay contenido aquí</div>
@@ -1007,7 +1038,7 @@ function renderPortfolio(){
     byCategory[item.category].push(item);
   });
 
-  container.innerHTML = bioHTML + Object.entries(byCategory).map(([cat, items]) => {
+  container.innerHTML = heroHTML + bioHTML + Object.entries(byCategory).map(([cat, items]) => {
     const label = CATEGORY_LABELS[cat] || (cat.charAt(0).toUpperCase() + cat.slice(1));
     const gridItems = items.map((item, idx) => {
       const globalIdx = PORTFOLIO_ITEMS.indexOf(item);
