@@ -999,9 +999,15 @@ function renderBioBlock(){
 const PORTFOLIO_HEADLINE = 'Elevamos la imagen de tu negocio';
 const PORTFOLIO_STATS = [
   {num:'10+', label:'Años de experiencia'},
-  {num:'100%', label:'Producción propia'},
   {num:'360°', label:'Publicidad, foto y video integral'},
+  {num:'100%', label:'Producción propia'},
 ];
+
+function parseStatNum(str){
+  const m = str.match(/^(\d+)(.*)$/);
+  if(!m) return {value:null, suffix:str};
+  return {value:parseInt(m[1],10), suffix:m[2]};
+}
 
 function renderPortfolioHero(){
   return `
@@ -1009,9 +1015,33 @@ function renderPortfolioHero(){
       <div class="eyebrow">Publicidad · Fotografía · Video · Dron</div>
       <h1>${PORTFOLIO_HEADLINE}</h1>
       <div class="hero-stats">
-        ${PORTFOLIO_STATS.map(s=>`<div class="stat"><span class="num">${s.num}</span><span class="lbl">${s.label}</span></div>`).join('')}
+        ${PORTFOLIO_STATS.map(s=>{
+          const {value, suffix} = parseStatNum(s.num);
+          const numHTML = value !== null
+            ? `<span class="num" data-target="${value}" data-suffix="${suffix}">0${suffix}</span>`
+            : `<span class="num">${s.num}</span>`;
+          return `<div class="stat">${numHTML}<span class="lbl">${s.label}</span></div>`;
+        }).join('')}
       </div>
     </div>`;
+}
+
+function animateHeroStats(){
+  const els = document.querySelectorAll('#portfolioContent .hero-stats .num[data-target]');
+  els.forEach(el => {
+    const target = parseInt(el.dataset.target, 10);
+    const suffix = el.dataset.suffix || '';
+    const duration = 1100;
+    const start = performance.now();
+    function tick(now){
+      const progress = Math.min((now-start)/duration, 1);
+      const eased = 1 - Math.pow(1-progress, 3);
+      el.textContent = Math.round(eased * target) + suffix;
+      if(progress < 1) requestAnimationFrame(tick);
+      else el.textContent = target + suffix;
+    }
+    requestAnimationFrame(tick);
+  });
 }
 
 function renderPortfolio(){
@@ -1028,6 +1058,7 @@ function renderPortfolio(){
           Sube tus fotos o videos a la carpeta <b>media/</b> de tu repo en GitHub, y agrégalos a la lista <b>PORTFOLIO_ITEMS</b> en el código. Avísame si quieres ayuda con los primeros.
         </div>
       </div>`;
+    animateHeroStats();
     return;
   }
 
@@ -1057,6 +1088,7 @@ function renderPortfolio(){
         <div class="portfolio-grid">${gridItems}</div>
       </div>`;
   }).join('');
+  animateHeroStats();
 }
 
 function openLightbox(idx){
