@@ -192,56 +192,61 @@
     max-width:none;
     width:100%;
     margin:0;
-    padding-left:240px;
+    padding-left:0;
     padding-bottom:0;
     min-height:100vh;
   }
   header{
-    max-width:760px;
+    max-width:900px;
     margin:0 auto;
     width:100%;
-    padding-top:28px;
+    padding-top:20px;
     border-bottom:none;
   }
   main{
-    max-width:760px;
+    max-width:900px;
     margin:0 auto;
     width:100%;
     padding:20px 24px 60px 24px;
   }
   nav.bottomnav{
-    position:fixed;
-    left:0; top:0; bottom:auto;
+    order:-1;
+    position:sticky;
+    left:auto; top:0; bottom:auto;
     transform:none;
-    width:240px; max-width:240px;
-    height:100vh;
-    flex-direction:column;
-    align-items:stretch;
-    justify-content:flex-start;
-    padding:26px 14px;
-    gap:4px;
+    width:100%; max-width:none;
+    height:auto;
+    flex-direction:row;
+    align-items:center;
+    justify-content:center;
+    padding:12px 20px;
+    gap:6px;
     border-top:none;
-    border-right:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+    background:var(--bg-2);
+    z-index:30;
   }
   .sidebar-brand{
     display:flex;
     align-items:center;
-    gap:9px;
-    padding:0 10px 20px 10px;
-    margin-bottom:14px;
-    border-bottom:1px solid var(--line);
+    gap:8px;
+    padding:0 20px 0 0;
+    margin-right:14px;
+    border-bottom:none;
+    border-right:1px solid var(--line);
   }
   .sidebar-brand .word b{font-family:'Space Grotesk',sans-serif;font-size:14px;color:#fff;letter-spacing:.02em;display:block;line-height:1.2;}
   .sidebar-brand .word span{display:block;font-size:8px;color:var(--muted);letter-spacing:.24em;}
   .navbtn{
+    flex:0 0 auto;
     flex-direction:row;
-    justify-content:flex-start;
-    gap:12px;
-    padding:11px 12px;
+    justify-content:center;
+    gap:8px;
+    padding:10px 18px;
     border-radius:10px;
     font-size:13.5px;
   }
-  .navbtn svg{width:20px;height:20px;}
+  .navbtn svg{width:18px;height:18px;}
   .navbtn.active{background:rgba(234,208,140,.1);color:var(--gold-light);}
   .portfolio-grid{grid-template-columns:repeat(5,1fr);}
   .lightbox-content{max-width:60vw;}
@@ -1261,4 +1266,3 @@ document.getElementById('dronePresetToggle').addEventListener('click',(e)=>{
 </script>
 </body>
 </html>
-9
