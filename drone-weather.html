@@ -168,6 +168,17 @@
   .portfolio-item img,.portfolio-item video{width:100%;height:100%;object-fit:cover;display:block;}
   .portfolio-item .playicon{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.28);}
   .portfolio-item .playicon svg{width:26px;height:26px;color:#fff;}
+  .stackbadge{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.65);color:#fff;font-size:11px;font-weight:700;padding:3px 7px;border-radius:20px;display:flex;align-items:center;gap:3px;}
+  .stackbadge svg{width:13px;height:13px;}
+  .carousel-viewer{position:relative;display:flex;align-items:center;justify-content:center;max-width:100%;max-height:82vh;}
+  .carousel-viewer img{max-width:100%;max-height:82vh;border-radius:10px;display:block;}
+  .carousel-nav{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.5);color:#fff;border:none;width:42px;height:42px;border-radius:50%;font-size:26px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .carousel-nav.prev{left:8px;}
+  .carousel-nav.next{right:8px;}
+  .carousel-counter{position:absolute;top:12px;right:12px;background:rgba(0,0,0,.55);color:#fff;font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:20px;}
+  .carousel-dots{position:absolute;bottom:14px;left:0;right:0;display:flex;justify-content:center;gap:6px;}
+  .carousel-dots .dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.4);}
+  .carousel-dots .dot.active{background:#fff;}
   .portfolio-empty{text-align:center;padding:50px 20px;color:var(--muted);}
   .portfolio-empty svg{width:44px;height:44px;margin-bottom:12px;opacity:.5;}
   .lightbox-overlay{position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:100;display:flex;align-items:center;justify-content:center;padding:24px 16px;}
@@ -335,6 +346,7 @@
         <div class="loading"><div class="spinner"></div>Obteniendo datos reales de vuelo...</div>
       </div>
       <div id="sunTimesSlot"></div>
+      <div id="moonSlot"></div>
     </section>
 
     <!-- TAB: BRUJULA -->
@@ -609,6 +621,7 @@ async function loadAll(){
     renderAlertBanner();
     maybeNotify();
     renderFotografia();
+    renderMoonSection();
   }catch(e){
     document.getElementById('pronosticoContent').innerHTML = '<div class="loading">No se pudo obtener el clima. Revisa tu conexión a internet e intenta de nuevo.</div>';
   }
@@ -642,7 +655,7 @@ function renderDayTabs(){
     const div = document.createElement('div');
     div.className = 'daytab' + (idx===state.selectedDay ? ' active' : '');
     div.innerHTML = `<span class="d">${lbl.bottom}</span>${lbl.top}`;
-    div.onclick = () => { state.selectedDay = idx; state.selectedHourIndex = null; renderDayTabs(); renderHourScroll(); renderPronostico(); renderBrujula(); renderFotografia(); };
+    div.onclick = () => { state.selectedDay = idx; state.selectedHourIndex = null; renderDayTabs(); renderHourScroll(); renderPronostico(); renderBrujula(); renderFotografia(); renderMoonSection(); };
     el.appendChild(div);
   });
 }
@@ -871,6 +884,166 @@ function photoConditionFromCloud(cloud){
   return {cls:'bad', text:'Cielo muy cubierto — probablemente no se vea el sol'};
 }
 
+/* ---------------- ASTRONOMÍA: FASE LUNAR (sin API, cálculo propio) ---------------- */
+const MOON_RAD = Math.PI / 180;
+const MOON_DAY_MS = 1000*60*60*24;
+const MOON_J1970 = 2440588;
+const MOON_J2000 = 2451545;
+const MOON_OBLIQUITY = MOON_RAD * 23.4397;
+
+function moonToJulian(date){ return date.valueOf()/MOON_DAY_MS - 0.5 + MOON_J1970; }
+function moonToDays(date){ return moonToJulian(date) - MOON_J2000; }
+function moonRightAscension(l, b){ return Math.atan2(Math.sin(l)*Math.cos(MOON_OBLIQUITY) - Math.tan(b)*Math.sin(MOON_OBLIQUITY), Math.cos(l)); }
+function moonDeclination(l, b){ return Math.asin(Math.sin(b)*Math.cos(MOON_OBLIQUITY) + Math.cos(b)*Math.sin(MOON_OBLIQUITY)*Math.sin(l)); }
+function moonAzimuth(H, phi, dec){ return Math.atan2(Math.sin(H), Math.cos(H)*Math.sin(phi) - Math.tan(dec)*Math.cos(phi)); }
+function moonAltitudeCalc(H, phi, dec){ return Math.asin(Math.sin(phi)*Math.sin(dec) + Math.cos(phi)*Math.cos(dec)*Math.cos(H)); }
+function moonSiderealTime(d, lw){ return MOON_RAD*(280.16 + 360.9856235*d) - lw; }
+
+function moonCoords(d){
+  const L = MOON_RAD*(218.316 + 13.176396*d);
+  const M = MOON_RAD*(134.963 + 13.064993*d);
+  const F = MOON_RAD*(93.272 + 13.229350*d);
+  const l = L + MOON_RAD*6.289*Math.sin(M);
+  const b = MOON_RAD*5.128*Math.sin(F);
+  const dt = 385001 - 20905*Math.cos(M);
+  return {ra: moonRightAscension(l,b), dec: moonDeclination(l,b), dist: dt};
+}
+function sunCoordsForMoon(d){
+  const M = MOON_RAD*(357.5291 + 0.98560028*d);
+  const C = MOON_RAD*(1.9148*Math.sin(M) + 0.02*Math.sin(2*M) + 0.0003*Math.sin(3*M));
+  const P = MOON_RAD*102.9372;
+  const L = M + C + P + Math.PI;
+  return {dec: moonDeclination(L,0), ra: moonRightAscension(L,0)};
+}
+function getMoonPosition(date, lat, lng){
+  const lw = MOON_RAD*(-lng);
+  const phi = MOON_RAD*lat;
+  const d = moonToDays(date);
+  const c = moonCoords(d);
+  const H = moonSiderealTime(d, lw) - c.ra;
+  return { azimuth: moonAzimuth(H, phi, c.dec), altitude: moonAltitudeCalc(H, phi, c.dec), distance: c.dist };
+}
+function getMoonIllumination(date){
+  const d = moonToDays(date);
+  const s = sunCoordsForMoon(d);
+  const m = moonCoords(d);
+  const sdist = 149598000;
+  const phi = Math.acos(Math.sin(s.dec)*Math.sin(m.dec) + Math.cos(s.dec)*Math.cos(m.dec)*Math.cos(s.ra - m.ra));
+  const inc = Math.atan2(sdist*Math.sin(phi), m.dist - sdist*Math.cos(phi));
+  const angle = Math.atan2(Math.cos(s.dec)*Math.sin(s.ra - m.ra), Math.sin(s.dec)*Math.cos(m.dec) - Math.cos(s.dec)*Math.sin(m.dec)*Math.cos(s.ra - m.ra));
+  return {
+    fraction: (1 + Math.cos(inc)) / 2,
+    phase: 0.5 + 0.5 * inc * (angle < 0 ? -1 : 1) / Math.PI,
+  };
+}
+function moonHoursLater(date, h){ return new Date(date.valueOf() + h*60*60000); }
+function getMoonTimes(date, lat, lng){
+  const t = new Date(date); t.setHours(0,0,0,0);
+  const hc = 0.133*MOON_RAD;
+  let h0 = getMoonPosition(t, lat, lng).altitude - hc;
+  let rise, set, ye=0, x1, x2=0, dx, roots, a, b, xe, d;
+  for(let i=1; i<=24; i+=2){
+    const h1 = getMoonPosition(moonHoursLater(t, i), lat, lng).altitude - hc;
+    const h2 = getMoonPosition(moonHoursLater(t, i+1), lat, lng).altitude - hc;
+    a = (h0+h2)/2 - h1;
+    b = (h2-h0)/2;
+    xe = -b/(2*a);
+    ye = (a*xe + b)*xe + h1;
+    d = b*b - 4*a*h1;
+    roots = 0;
+    if(d>=0){
+      dx = Math.sqrt(d)/(Math.abs(a)*2);
+      x1 = xe - dx; x2 = xe + dx;
+      if(Math.abs(x1)<=1) roots++;
+      if(Math.abs(x2)<=1) roots++;
+      if(x1<-1) x1 = x2;
+    }
+    if(roots === 1){
+      if(h0<0) rise = i + x1; else set = i + x1;
+    } else if(roots === 2){
+      rise = i + (ye<0 ? x2 : x1);
+      set = i + (ye<0 ? x1 : x2);
+    }
+    if(rise && set) break;
+    h0 = h2;
+  }
+  const result = {};
+  if(rise) result.rise = moonHoursLater(t, rise);
+  if(set) result.set = moonHoursLater(t, set);
+  if(!rise && !set) result[ye>0 ? 'alwaysUp':'alwaysDown'] = true;
+  return result;
+}
+function moonPhaseName(phase){
+  if(phase < 0.033 || phase > 0.967) return 'Luna nueva';
+  if(phase < 0.217) return 'Luna creciente';
+  if(phase < 0.283) return 'Cuarto creciente';
+  if(phase < 0.467) return 'Gibosa creciente';
+  if(phase < 0.533) return 'Luna llena';
+  if(phase < 0.717) return 'Gibosa menguante';
+  if(phase < 0.783) return 'Cuarto menguante';
+  return 'Luna menguante';
+}
+function moonPhaseEmoji(phase){
+  if(phase < 0.033 || phase > 0.967) return '🌑';
+  if(phase < 0.217) return '🌒';
+  if(phase < 0.283) return '🌓';
+  if(phase < 0.467) return '🌔';
+  if(phase < 0.533) return '🌕';
+  if(phase < 0.717) return '🌖';
+  if(phase < 0.783) return '🌗';
+  return '🌘';
+}
+
+function renderMoonSection(){
+  const container = document.getElementById('moonSlot');
+  if(!container || !state.weather) return;
+
+  const dateStr = state.weather.daily.time[state.selectedDay];
+  const dayStart = new Date(dateStr + 'T00:00:00');
+
+  const illum = getMoonIllumination(dayStart);
+  const times = getMoonTimes(dayStart, state.lat, state.lon);
+  const pct = Math.round(illum.fraction * 100);
+  const phaseName = moonPhaseName(illum.phase);
+  const emoji = moonPhaseEmoji(illum.phase);
+
+  const fmt = d => d ? d.toLocaleTimeString('es-CR',{hour:'numeric',minute:'2-digit'}) : '—';
+
+  // Nubosidad de referencia para la noche (10pm de la fecha seleccionada)
+  const nightCloud = cloudAtInstant(new Date(dateStr + 'T22:00:00'));
+
+  let reco;
+  if(nightCloud !== null && nightCloud > 70){
+    reco = {cls:'bad', text:'Cielo muy cubierto esta noche — no ideal para timelapse ni fotos de estrellas.'};
+  } else if(pct <= 15){
+    reco = {cls:'good', text:'Luna casi nueva y cielo despejado — excelente para fotografiar estrellas o la Vía Láctea.'};
+  } else if(pct >= 70){
+    reco = {cls:'warn', text:'Luna muy iluminada — buena luz ambiental para timelapse, pero dificulta ver estrellas.'};
+  } else {
+    reco = {cls:'good', text:'Condiciones moderadas — buena opción para timelapse nocturno con algo de luz de luna.'};
+  }
+
+  container.innerHTML = `
+    <div class="section-title" style="padding-left:2px;">Luna esta noche</div>
+    <div class="card">
+      <div class="photo-row" style="border-top:none;">
+        <div>
+          <div class="plabel"><span style="font-size:18px;">${emoji}</span>${phaseName}</div>
+          <span class="photo-tag ${reco.cls}">${reco.text}</span>
+        </div>
+        <div class="ptime">${pct}% <span style="font-size:10.5px;color:var(--muted);font-weight:500;">iluminada</span></div>
+      </div>
+      <div class="photo-row">
+        <div class="plabel"><span class="dot" style="background:#8B95B8;"></span>Salida de la luna</div>
+        <div class="ptime">${fmt(times.rise)}</div>
+      </div>
+      <div class="photo-row">
+        <div class="plabel"><span class="dot" style="background:#4C5578;"></span>Puesta de la luna</div>
+        <div class="ptime">${fmt(times.set)}</div>
+      </div>
+    </div>`;
+}
+
 async function renderFotografia(){
   const container = document.getElementById('sunTimesSlot');
   if(!container) return;
@@ -936,10 +1109,14 @@ async function renderFotografia(){
       que uses.
    ==================================================================== */
 const PORTFOLIO_ITEMS = [
-  // Ejemplo de foto:
+  // Ejemplo de foto única:
   // { category: 'paisajes', type: 'photo', title: 'Atardecer en Puntarenas', src: 'media/paisajes/atardecer1.jpg' },
   // Ejemplo de video (sube el .mp4 a la carpeta media/):
   // { category: 'eventos', type: 'video', title: 'Boda Ana y Luis', src: 'media/eventos/boda1.mp4' },
+  // Ejemplo de carrusel (varias imágenes de un mismo proyecto, ej. un paquete
+  // de marca completo: logo, tarjeta, menú, etc. — la persona puede pasar
+  // entre todas con flechas al tocar la miniatura):
+  // { category: 'branding', type: 'carousel', title: 'Paquete de marca — Café Sol', src: ['media/branding/cafesol-logo.jpg', 'media/branding/cafesol-tarjeta.jpg', 'media/branding/cafesol-menu.jpg'] },
 ];
 
 // Cambia este texto por tu propia reseña cuando quieras.
@@ -1083,6 +1260,14 @@ function renderPortfolio(){
             <div class="playicon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>
           </div>`;
       }
+      if(item.type === 'carousel'){
+        const cover = item.src[0];
+        return `
+          <div class="portfolio-item" onclick="openLightbox(${globalIdx})">
+            <img src="${cover}" loading="lazy" alt="${item.title||''}">
+            <div class="stackbadge"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="7" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M7 7V5a2 2 0 012-2h10a2 2 0 012 2v10a2 2 0 01-2 2h-2" stroke="currentColor" stroke-width="1.8"/></svg>${item.src.length}</div>
+          </div>`;
+      }
       return `<div class="portfolio-item" onclick="openLightbox(${globalIdx})"><img src="${item.src}" loading="lazy" alt="${item.title||''}"></div>`;
     }).join('');
     return `
@@ -1094,21 +1279,53 @@ function renderPortfolio(){
   animateHeroStats();
 }
 
+let lightboxState = { idx: null, carouselIndex: 0 };
+
 function openLightbox(idx){
   const item = PORTFOLIO_ITEMS[idx];
+  if(!item) return;
+  lightboxState.idx = idx;
+  lightboxState.carouselIndex = 0;
+  renderLightboxContent();
+  document.getElementById('lightbox').classList.remove('hidden');
+}
+
+function renderLightboxContent(){
+  const item = PORTFOLIO_ITEMS[lightboxState.idx];
   if(!item) return;
   const content = document.getElementById('lightboxContent');
   if(item.type === 'video'){
     content.innerHTML = `<video src="${item.src}" controls autoplay playsinline></video>`;
+  } else if(item.type === 'carousel'){
+    const total = item.src.length;
+    const i = lightboxState.carouselIndex;
+    content.innerHTML = `
+      <div class="carousel-viewer">
+        <img src="${item.src[i]}" alt="${item.title||''}">
+        ${total > 1 ? `
+          <button class="carousel-nav prev" onclick="event.stopPropagation();carouselNav(-1)" aria-label="Anterior">‹</button>
+          <button class="carousel-nav next" onclick="event.stopPropagation();carouselNav(1)" aria-label="Siguiente">›</button>
+          <div class="carousel-counter">${i+1} / ${total}</div>
+          <div class="carousel-dots">${item.src.map((_,d)=>`<span class="dot ${d===i?'active':''}"></span>`).join('')}</div>
+        ` : ''}
+      </div>`;
   } else {
     content.innerHTML = `<img src="${item.src}" alt="${item.title||''}">`;
   }
-  document.getElementById('lightbox').classList.remove('hidden');
+}
+
+function carouselNav(dir){
+  const item = PORTFOLIO_ITEMS[lightboxState.idx];
+  if(!item || item.type !== 'carousel') return;
+  const total = item.src.length;
+  lightboxState.carouselIndex = (lightboxState.carouselIndex + dir + total) % total;
+  renderLightboxContent();
 }
 
 function closeLightbox(){
   document.getElementById('lightboxContent').innerHTML = '';
   document.getElementById('lightbox').classList.add('hidden');
+  lightboxState.idx = null;
 }
 
 /* ---------------- TABS PRINCIPALES ---------------- */
